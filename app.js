@@ -14,7 +14,9 @@ exec("sudo ip link set can0 up type can bitrate 500000", function(err, stdout, s
 
 
 var can = require('socketcan');
-var fs = require('fs');
+const math = require('math');
+// var fs = require('fs');
+
 var sensorLib = require('node-dht-sensor');
 
 // Parse database
@@ -59,31 +61,36 @@ setInterval(function(){
       temperature1 : 0,
       temperature2 : 0,
       humidity1: "",
-      humidity2: ""
+      humidity2: "",
+      sigTime: ""
    };
 
-   var controlData = {
-      fan1: 0,
-      fan2: 0,
-      fan3: 0,
-      feed: 0,
-      water: 0,
-      alarm: 0
-   };
+   // var controlData = {
+   //    fan1: 0,
+   //    fan2: 0,
+   //    fan3: 0,
+   //    feed: 0,
+   //    water: 0,
+   //    alarm: 0
+   // };
 
    sensorData.temperature1 = sensor.sensors[0].temperature;
    sensorData.temperature2 = sensor.sensors[1].temperature;
-   sensorData.humidity1 = sensor.sensors[0].humidity;
-   sensorData.humidity2 = sensor.sensors[1].humidity;
+   sensorData.humidity1    = sensor.sensors[0].humidity;
+   sensorData.humidity2    = sensor.sensors[1].humidity;
+   sensorData.sigTime      = getTimeInt();
 
    db.messages["House2Stat"].signals["temperature1"].update(sensorData.temperature1);
    db.messages["House2Stat"].signals["temperature2"].update(sensorData.temperature2);
    db.messages["House2Stat"].signals["humidity1"].update(sensorData.humidity1);
    db.messages["House2Stat"].signals["humidity2"].update(sensorData.humidity2);
-
+   db.messages["House2Stat"].signals["sigTime"].update(sensorData.sigTime);
    //Trigger sending this message
    db.send("House2Stat");
-
 }, 6000);
 
-
+function getTimeInt(){
+   var now = new Date();
+   var nowInt = math.floor(now/1000);
+   return nowInt;
+}
