@@ -24,6 +24,13 @@ var network = can.parseNetworkDescription("./node_modules/socketcan/samples/myca
 var channel = can.createRawChannel("can0");
 var db = new can.DatabaseService(channel, network.buses["FarmBUS"]);
 channel.start();
+var ctrlData = {
+   fan1: 0,
+   fan2: 0,
+   fan3: 0,
+   water: 0,
+   alarm: 0
+};
 
 var sensor = {
    sensors: [
@@ -65,29 +72,41 @@ setInterval(function(){
       sigTime: ""
    };
 
-   // var controlData = {
-   //    fan1: 0,
-   //    fan2: 0,
-   //    fan3: 0,
-   //    feed: 0,
-   //    water: 0,
-   //    alarm: 0
-   // };
-
    sensorData.temperature1 = sensor.sensors[0].temperature;
    sensorData.temperature2 = sensor.sensors[1].temperature;
    sensorData.humidity1    = sensor.sensors[0].humidity;
    sensorData.humidity2    = sensor.sensors[1].humidity;
    sensorData.sigTime      = getTimeInt();
+   console.log(sensorData.sigTime);
 
    db.messages["House2Stat"].signals["temperature1"].update(sensorData.temperature1);
    db.messages["House2Stat"].signals["temperature2"].update(sensorData.temperature2);
    db.messages["House2Stat"].signals["humidity1"].update(sensorData.humidity1);
    db.messages["House2Stat"].signals["humidity2"].update(sensorData.humidity2);
    db.messages["House2Stat"].signals["sigTime"].update(sensorData.sigTime);
+   console.log(db.messages["House2Stat"].signals["sigTime"].value);
    //Trigger sending this message
    db.send("House2Stat");
-}, 6000);
+   //Control Data
+   console.log(ctrlData.fan1);
+}, 10000);
+
+db.messages["House2Ctrl"].signals["fan1"].onUpdate(function(s){
+   ctrlData.fan1 = s.value;
+});
+db.messages["House2Ctrl"].signals["fan2"].onUpdate(function(s){
+   ctrlData.fan2 = s.value;
+});
+db.messages["House2Ctrl"].signals["fan3"].onUpdate(function(s){
+   ctrlData.fan3 = s.value;
+});
+db.messages["House2Ctrl"].signals["water"].onUpdate(function(s){
+   ctrlData.water = s.value;
+});
+db.messages["House2Ctrl"].signals["alarm"].onUpdate(function(s){
+   ctrlData.alarm = s.value;
+});
+
 
 function getTimeInt(){
    var now = new Date();
