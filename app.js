@@ -1,3 +1,12 @@
+var gpio = require('onoff').Gpio;
+const IOfan1 = new gpio(16,'out');
+const IOfan2 = new gpio(20,'out');
+const IOfan3 = new gpio(5,'out');
+const IOwater = new gpio(6,'out');
+const IOalarm = new gpio(13,'out');
+const HIGH = 1;
+const LOW = 0;
+
 var exec = require('child_process').exec;
 
 //Activate real canbus: can0
@@ -89,6 +98,13 @@ setInterval(function(){
    db.send("House2Stat");
    //Control Data
    console.log(ctrlData.fan1);
+
+   //콘트롤 데이터 확인하여, 제어출력
+   IOfan1.writeSync(ctrlData.fan1);
+   IOfan2.writeSync(ctrlData.fan2);
+   IOfan3.writeSync(ctrlData.fan3);
+   IOwater.writeSync(ctrlData.water);
+   IOalarm.writeSync(ctrlData.alarm);
 }, 10000);
 
 db.messages["House2Ctrl"].signals["fan1"].onUpdate(function(s){
