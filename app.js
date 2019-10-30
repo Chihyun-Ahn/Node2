@@ -56,7 +56,36 @@ var sensor = {
          pin: 3,
          temperature: 0,
          humidity: ""
-      }
+      },
+      {
+         name: "House2Sen3",
+         type: 11,
+         pin: 4,
+         temperature: 0,
+         humidity: ""
+      },
+      {
+         name: "House2Sen4",
+         type: 11,
+         pin: 17,
+         temperature: 0,
+         humidity: ""
+      },
+      {
+         name: "House2Sen5",
+         type: 11,
+         pin: 27,
+         temperature: 0,
+         humidity: ""
+      },
+      {
+         name: "House2Sen6",
+         type: 11,
+         pin: 22,
+         temperature: 0,
+         humidity: ""
+      },
+
    ],
    read: function(){
       for (var a in  this.sensors){
@@ -72,30 +101,35 @@ var sensor = {
 };
 
 setInterval(function(){
-   sensor.read();
-   var sensorData = {
-      temperature1 : 0,
-      temperature2 : 0,
-      humidity1: "",
-      humidity2: "",
-      sigTime: ""
-   };
+   sensor.read();  
+   
+   db.messages["House2Stat1"].signals["temperature1"].update(sensor.sensors[0].temperature);
+   db.messages["House2Stat1"].signals["temperature2"].update(sensor.sensors[1].temperature);
+   db.messages["House2Stat1"].signals["humidity1"].update(sensor.sensors[0].humidity);
+   db.messages["House2Stat1"].signals["humidity2"].update(sensor.sensors[1].humidity);
+   db.messages["House2Stat1"].signals["sigTime"].update(getTimeInt());
+   
+   db.messages["House2Stat2"].signals["temperature3"].update(sensor.sensors[2].temperature);
+   db.messages["House2Stat2"].signals["temperature4"].update(sensor.sensors[3].temperature);
+   db.messages["House2Stat2"].signals["humidity3"].update(sensor.sensors[2].humidity);
+   db.messages["House2Stat2"].signals["humidity4"].update(sensor.sensors[3].humidity);
+   db.messages["House2Stat2"].signals["sigTime"].update(getTimeInt());
+   
+   db.messages["House2Stat3"].signals["temperature5"].update(sensor.sensors[4].temperature);
+   db.messages["House2Stat3"].signals["temperature6"].update(sensor.sensors[5].temperature);
+   db.messages["House2Stat3"].signals["humidity5"].update(sensor.sensors[4].humidity);
+   db.messages["House2Stat3"].signals["humidity6"].update(sensor.sensors[5].humidity);
+   db.messages["House2Stat3"].signals["sigTime"].update(getTimeInt());
+   
+   //Trigger sending messages
+   db.send("House2Stat1");
+   db.send("House2Stat2");
+   db.send("House2Stat3");
 
-   sensorData.temperature1 = sensor.sensors[0].temperature;
-   sensorData.temperature2 = sensor.sensors[1].temperature;
-   sensorData.humidity1    = sensor.sensors[0].humidity;
-   sensorData.humidity2    = sensor.sensors[1].humidity;
-   sensorData.sigTime      = getTimeInt();
-   console.log(sensorData.sigTime);
+   for(i=0;i<6;i++){
+      console.log(`센서${i+1}의 온도: ${sensor.sensors[i].temperature} 습도: ${sensor.sensors[i].humidity}`);
+   }
 
-   db.messages["House2Stat"].signals["temperature1"].update(sensorData.temperature1);
-   db.messages["House2Stat"].signals["temperature2"].update(sensorData.temperature2);
-   db.messages["House2Stat"].signals["humidity1"].update(sensorData.humidity1);
-   db.messages["House2Stat"].signals["humidity2"].update(sensorData.humidity2);
-   db.messages["House2Stat"].signals["sigTime"].update(sensorData.sigTime);
-   console.log(db.messages["House2Stat"].signals["sigTime"].value);
-   //Trigger sending this message
-   db.send("House2Stat");
    //Control Data
    console.log(ctrlData.fan1);
 
