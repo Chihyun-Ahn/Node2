@@ -33,13 +33,10 @@ var network = can.parseNetworkDescription("./node_modules/socketcan/samples/myca
 var channel = can.createRawChannel("can0");
 var db = new can.DatabaseService(channel, network.buses["FarmBUS"]);
 channel.start();
-var ctrlData = {
-   fan1: 0,
-   fan2: 0,
-   fan3: 0,
-   water: 0,
-   alarm: 0
-};
+var ctrlElements = ['fan1', 'fan2', 'fan3', 'water', 'alarm', 'emgOutputForNeighbor'];
+var ctrlData = [LOW,LOW,LOW,LOW,LOW,LOW];
+var neighborDeadTimer;
+
 
 var sensor = {
    sensors: [
@@ -92,45 +89,24 @@ var sensor = {
          var b = sensorLib.read(this.sensors[a].type, this.sensors[a].pin);
          this.sensors[a].temperature = b.temperature.toFixed(1);
          this.sensors[a].humidity = b.humidity.toFixed(1);
-         console.log(
-            this.sensors[a].name + ": " +this.sensors[a].temperature + "°C, " + this.sensors[a].humidity + "%"
-         );
-
+         // console.log(
+         //    this.sensors[a].name + ": " +this.sensors[a].temperature + "°C, " + this.sensors[a].humidity + "%"
+         // );
       }
    }
 };
 
 setInterval(function(){
    sensor.read();  
-   
-   db.messages["House2Temp"].signals["temperature1"].update(sensor.sensors[0].temperature);
-   db.messages["House2Temp"].signals["temperature2"].update(sensor.sensors[1].temperature);
-   db.messages["House2Temp"].signals["temperature3"].update(sensor.sensors[2].temperature);
-   db.messages["House2Temp"].signals["temperature4"].update(sensor.sensors[3].temperature);
-   db.messages["House2Temp"].signals["temperature5"].update(sensor.sensors[4].temperature);
-   db.messages["House2Temp"].signals["temperature6"].update(sensor.sensors[5].temperature);
-   db.messages["House2TempTime"].signals["sigTime"].update(getTimeInt());
-
-   db.messages["House2Humid"].signals["humidity1"].update(sensor.sensors[0].humidity);
-   db.messages["House2Humid"].signals["humidity2"].update(sensor.sensors[1].humidity);
-   db.messages["House2Humid"].signals["humidity3"].update(sensor.sensors[2].humidity);
-   db.messages["House2Humid"].signals["humidity4"].update(sensor.sensors[3].humidity);
-   db.messages["House2Humid"].signals["humidity5"].update(sensor.sensors[4].humidity);
-   db.messages["House2Humid"].signals["humidity6"].update(sensor.sensors[5].humidity);
-   db.messages["House2HumidTime"].signals["sigTime"].update(getTimeInt());
-
-   //Trigger sending messages
-   db.send("House2Temp");
-   db.send("House2Humid");
-   db.send("House2TempTime");
-   db.send("House2TempTime");
+   putSensorData("House2");
+   sendSensorData("House2");
 
    for(i=0;i<6;i++){
       console.log(`센서${i+1}의 온도: ${sensor.sensors[i].temperature} 습도: ${sensor.sensors[i].humidity}`);
    }
 
    //Control Data
-   console.log(ctrlData.fan1);
+   console.log('House2 fan1:'+ctrlData[0]);
 
    //콘트롤 데이터 확인하여, 제어출력
    IOfan1.writeSync(ctrlData.fan1);
@@ -138,23 +114,80 @@ setInterval(function(){
    IOfan3.writeSync(ctrlData.fan3);
    IOwater.writeSync(ctrlData.water);
    IOalarm.writeSync(ctrlData.alarm);
+
+   getCtrlData("House2");
+
 }, 10000);
 
-db.messages["House2Ctrl"].signals["fan1"].onUpdate(function(s){
-   ctrlData.fan1 = s.value;
+setNeighborDeadTimer();
+
+// Neighbor Dead Timer function
+function setNeighborDeadTimer(){
+   neighborDeadTimer = setTimeout(function(){
+      console.log('!!WARNING!! House1 not responding for 30s.');
+      var i=0;
+      var sendProbe = setInterval(function(){
+         db.send("AliveCheckByH1");
+         i++;
+         if(i==2){
+            operateHouse1();
+            clearInterval(sendProbe);
+            emergentOper("House1");
+         };
+      }, 10000);
+      console.log('');
+   }, 30000);   
+}
+
+
+//심장박동
+db.messages["House1Temp"].signals["temperature2"].onUpdate(function(s){
+   clearTimeout(neighborDeadTimer);
+   console.log('timer cleared.');
+   setNeighborDeadTimer();
 });
-db.messages["House2Ctrl"].signals["fan2"].onUpdate(function(s){
-   ctrlData.fan2 = s.value;
-});
-db.messages["House2Ctrl"].signals["fan3"].onUpdate(function(s){
-   ctrlData.fan3 = s.value;
-});
-db.messages["House2Ctrl"].signals["water"].onUpdate(function(s){
-   ctrlData.water = s.value;
-});
-db.messages["House2Ctrl"].signals["alarm"].onUpdate(function(s){
-   ctrlData.alarm = s.value;
-});
+
+function emergentOper(houseName){
+   var houseNum = houseName[5];
+   ctrlData[5] = HIGH; //5: emergency output for neighbor house
+   console.log('House'+houseNum+' is dead!! emergency motor is ON!!');
+}
+
+
+
+function putSensorData(houseName){
+   var houseTemp = houseName + "Temp";
+   var houseHumid = houseName + "Humid";
+   var houseTempTime = houseName + "TempTime";
+   var houseHumidTime = houseName + "HumidTime";
+   var tempNameGeneral = "temperature";
+   var humidNameGeneral = "humidity";
+   var i;
+   for(i=1;i<6;i++){
+      var tempNameSpecific = tempNameGeneral + (i+1);
+      var humidNameSpecific = humidNameGeneral + (i+1);
+      db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature);
+      db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity);
+   }
+   db.messages[houseTempTime].signals["sigTime"].update(getTimeInt());
+   db.messages[houseHumidTime].signals["sigTime"].update(getTimeInt());
+}
+
+function sendSensorData(houseName){
+   var rearNameVector = ["Temp", "Humid", "TempTime", "HumidTime"];
+   var i;
+   for (i=0;i<4;i++){
+      db.send(houseName+rearNameVector[i]);
+   }
+}
+
+function getCtrlData(houseName){
+   var msgName = houseName + "Ctrl";
+   var i;
+   for (i=0;i<ctrlElements.length;i++){
+      ctrlData[i] = db.messages[msgName].signals[ctrlElements[i]].value;
+   }
+}
 
 function getTimeInt(){
    var now = new Date();
