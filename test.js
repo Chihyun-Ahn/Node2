@@ -1,18 +1,15 @@
-var text = "asdfg1"
-console.log(text[5]);
-console.log(text.length);
+function aaa(){
+    var i = 1;
+    console.log('Probe'+i+' has been sent.');
+    var sendProbe = setInterval(function(){
+        i++;
+        if(i>3){
+            clearInterval(sendProbe);
+        };
+        if(i<=3){
+            console.log('Probe'+i+' has been sent.');
+        }
+    }, 2000);
+}
 
-
-// var i = 0;
-// var haha = setInterval(function(){
-//     console.log('i: '+i);
-//     i++;
-//     if(i == 5){
-//         operateHouse1();
-//         clearInterval(haha);
-//     }
-// }, 2000);
-
-// function operateHouse1(){
-//     console.log('House1 operation started.');
-// }
+aaa();

@@ -1,4 +1,5 @@
 var gpio = require('onoff').Gpio;
+var timeGetter = require('./getTime');
 const IOfan1 = new gpio(16,'out');
 const IOfan2 = new gpio(20,'out');
 const IOfan3 = new gpio(5,'out');
@@ -6,6 +7,7 @@ const IOwater = new gpio(6,'out');
 const IOalarm = new gpio(13,'out');
 const HIGH = 1;
 const LOW = 0;
+
 
 var exec = require('child_process').exec;
 
@@ -33,6 +35,7 @@ var network = can.parseNetworkDescription("./node_modules/socketcan/samples/myca
 var channel = can.createRawChannel("can0");
 var db = new can.DatabaseService(channel, network.buses["FarmBUS"]);
 channel.start();
+
 var ctrlElements = ['fan1', 'fan2', 'fan3', 'water', 'alarm', 'emgOutputForNeighbor'];
 var ctrlData = [LOW,LOW,LOW,LOW,LOW,LOW];
 var neighborDeadTimer;
@@ -125,17 +128,19 @@ setNeighborDeadTimer();
 function setNeighborDeadTimer(){
    neighborDeadTimer = setTimeout(function(){
       console.log('!!WARNING!! House1 not responding for 30s.');
-      var i=0;
+      var i=1;
+      db.send("AliveCheckByH2");
+      console.log('Probe'+i+' has been sent.');
       var sendProbe = setInterval(function(){
-         db.send("AliveCheckByH1");
          i++;
-         if(i==2){
-            operateHouse1();
+         if(i<=3){
+            db.send("AliveCheckByH2");
+            console.log('Probe'+i+' has been sent.');
+         }else if(i>3){
             clearInterval(sendProbe);
             emergentOper("House1");
          };
       }, 10000);
-      console.log('');
    }, 30000);   
 }
 
@@ -153,7 +158,16 @@ function emergentOper(houseName){
    console.log('House'+houseNum+' is dead!! emergency motor is ON!!');
 }
 
+db.messages["AliveCheckByH1"].signals["nodeID"].onUpdate(function(){
+   db.send("AliveAnsByH2");
+});
 
+db.messages["AliveAnsByH1"].signals["nodeID"].onUpdate(function(){
+   clearInterval(sendProbe);
+   ctrlData[5] = LOW;
+   console.log('House'+houseNum+' is recovered. Emergency motor is OFF');
+   setNeighborDeadTimer();
+});
 
 function putSensorData(houseName){
    var houseTemp = houseName + "Temp";
@@ -169,8 +183,9 @@ function putSensorData(houseName){
       db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature);
       db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity);
    }
-   db.messages[houseTempTime].signals["sigTime"].update(getTimeInt());
-   db.messages[houseHumidTime].signals["sigTime"].update(getTimeInt());
+   db.messages[houseTempTime].signals["sigTime"].update(timeGetter.now());
+   db.messages[houseHumidTime].signals["sigTime"].update(timeGetter.now());
+   console.log(houseTempTime + ":" + db.messages[houseTempTime].signals["sigTime"].value);
 }
 
 function sendSensorData(houseName){
@@ -189,8 +204,3 @@ function getCtrlData(houseName){
    }
 }
 
-function getTimeInt(){
-   var now = new Date();
-   var nowInt = now * 1;
-   return nowInt;
-}
