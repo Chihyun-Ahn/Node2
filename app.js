@@ -38,8 +38,7 @@ channel.start();
 
 var ctrlElements = ['fan1', 'fan2', 'fan3', 'water', 'alarm', 'emgOutputForNeighbor'];
 var ctrlData = [LOW,LOW,LOW,LOW,LOW,LOW];
-var neighborDeadTimer;
-
+var neighborDeadTimer, sendProbe;
 
 var sensor = {
    sensors: [
@@ -131,7 +130,7 @@ function setNeighborDeadTimer(){
       var i=1;
       db.send("AliveCheckByH2");
       console.log('Probe'+i+' has been sent.');
-      var sendProbe = setInterval(function(){
+      sendProbe = setInterval(function(){
          i++;
          if(i<=3){
             db.send("AliveCheckByH2");
@@ -159,13 +158,14 @@ function emergentOper(houseName){
 }
 
 db.messages["AliveCheckByH1"].signals["nodeID"].onUpdate(function(){
+   console.log('Edge1 sent aliveCheck. Answer is sent. ');
    db.send("AliveAnsByH2");
 });
 
 db.messages["AliveAnsByH1"].signals["nodeID"].onUpdate(function(){
    clearInterval(sendProbe);
    ctrlData[5] = LOW;
-   console.log('House'+houseNum+' is recovered. Emergency motor is OFF');
+   console.log('House1 is recovered. Emergency motor is OFF');
    setNeighborDeadTimer();
 });
 
@@ -191,9 +191,15 @@ function putSensorData(houseName){
 function sendSensorData(houseName){
    var rearNameVector = ["Temp", "Humid", "TempTime", "HumidTime"];
    var i;
+   var msgName;
    for (i=0;i<4;i++){
-      db.send(houseName+rearNameVector[i]);
+      msgName = houseName + rearNameVector[i];
+      db.send(msgName);
+      if(i==2){
+         console.log(db.messages[msgName].signals["sigTime"].value);
+      };
    }
+
 }
 
 function getCtrlData(houseName){
