@@ -169,30 +169,33 @@ db.messages["AliveAnsByH1"].signals["nodeID"].onUpdate(function(){
    setNeighborDeadTimer();
 });
 
+db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
+   console.log('Fog sent aliveCheck. Answer is sent.');
+   db.send('AliveAnsToFogByH2');
+});
+
 function putSensorData(houseName){
    var houseTemp = houseName + "Temp";
    var houseHumid = houseName + "Humid";
-   var houseTempTime = houseName + "TempTime";
-   var houseHumidTime = houseName + "HumidTime";
+   var houseMsgTime = houseName + "MsgTime";
    var tempNameGeneral = "temperature";
    var humidNameGeneral = "humidity";
    var i;
-   for(i=1;i<6;i++){
+   for(i=0;i<6;i++){
       var tempNameSpecific = tempNameGeneral + (i+1);
       var humidNameSpecific = humidNameGeneral + (i+1);
       db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature);
       db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity);
    }
-   db.messages[houseTempTime].signals["sigTime"].update(timeGetter.now());
-   db.messages[houseHumidTime].signals["sigTime"].update(timeGetter.now());
-   console.log(houseTempTime + ":" + db.messages[houseTempTime].signals["sigTime"].value);
+   db.messages[houseMsgTime].signals["sigTime"].update(timeGetter.now());
+   console.log(houseMsgTime + ":" + db.messages[houseMsgTime].signals["sigTime"].value);
 }
 
 function sendSensorData(houseName){
-   var rearNameVector = ["Temp", "Humid", "TempTime", "HumidTime"];
+   var rearNameVector = ["Temp", "Humid", "MsgTime"];
    var i;
    var msgName;
-   for (i=0;i<4;i++){
+   for (i=0;i<3;i++){
       msgName = houseName + rearNameVector[i];
       db.send(msgName);
       if(i==2){
