@@ -173,7 +173,7 @@ db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
    console.log('Fog sent aliveCheck. Answer is sent.');
    db.send('AliveAnsToFogByH2');
 });
-//ddd
+//ddddddd
 function putSensorData(houseName){
    var houseTemp = houseName + "Temp";
    var houseHumid = houseName + "Humid";
