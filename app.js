@@ -39,6 +39,9 @@ channel.start();
 var ctrlElements = ['fan1', 'fan2', 'fan3', 'water', 'alarm', 'emgOutputForNeighbor'];
 var ctrlData = [LOW,LOW,LOW,LOW,LOW,LOW];
 var neighborDeadTimer, sendProbe;
+var commState = {
+   H1H2: HIGH, H1Fog: HIGH, H2Fog: HIGH
+};
 
 var sensor = {
    sensors: [
@@ -91,9 +94,6 @@ var sensor = {
          var b = sensorLib.read(this.sensors[a].type, this.sensors[a].pin);
          this.sensors[a].temperature = b.temperature.toFixed(1);
          this.sensors[a].humidity = b.humidity.toFixed(1);
-         // console.log(
-         //    this.sensors[a].name + ": " +this.sensors[a].temperature + "°C, " + this.sensors[a].humidity + "%"
-         // );
       }
    }
 };
@@ -133,9 +133,15 @@ function setNeighborDeadTimer(){
       sendProbe = setInterval(function(){
          i++;
          if(i<=3){
-            db.send("AliveCheckByH2");
+            db.send('AliveCheckByH2');
             console.log('Probe'+i+' has been sent.');
-         }else if(i>3){
+         }else if(i>3 && i<6){
+            commState.H1H2 = LOW;
+            db.messages['H1StateByH2'].signals['state'].update(commState.H1H2);
+            db.send('H1AskingByH2');
+            console.log('Probe'+(i-3)+'has been sent to the Fog.');
+         }else if(i>=6){
+            commState.H2Fog = LOW;
             clearInterval(sendProbe);
             emergentOper("House1");
          };
@@ -146,6 +152,9 @@ function setNeighborDeadTimer(){
 
 //심장박동
 db.messages["House1Temp"].signals["temperature2"].onUpdate(function(s){
+   if(commState.H1H2 == LOW){
+      commState.H1H2 = HIGH;
+   }
    clearTimeout(neighborDeadTimer);
    console.log('timer cleared.');
    setNeighborDeadTimer();
@@ -162,11 +171,26 @@ db.messages["AliveCheckByH1"].signals["nodeID"].onUpdate(function(){
    db.send("AliveAnsByH2");
 });
 
-db.messages["AliveAnsByH1"].signals["nodeID"].onUpdate(function(){
+db.messages['AliveAnsByH1'].signals['nodeID'].onUpdate(function(){
+   commState.H1H2 = HIGH;
    clearInterval(sendProbe);
    ctrlData[5] = LOW;
    console.log('House1 is recovered. Emergency motor is OFF');
    setNeighborDeadTimer();
+});
+
+db.messages['H1StateByFog'].signals['state'].onUpdate(function(s){
+   commState.H1Fog = s;
+   if(commState.H1Fog == 0){
+      console.log('House1-House2 CAN communication error.');
+      clearInterval(sendProbe);
+   }else if(commState.H1Fog == 1){
+      console.log('House1 is in blackout.');
+      clearInterval(sendProbe);
+      emergentOper("House1");
+   }else{
+      console.log('H1StateByFog answer value wrong.');
+   }
 });
 
 db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
