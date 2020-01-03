@@ -141,7 +141,7 @@ function setNeighborDeadTimer(){
             db.send('H1AskingByH2');
             console.log('Probe'+(i-3)+'has been sent to the Fog.');
          }else if(i>=6){
-            commState.H2Fog = LOW;
+            commState.H1Fog = LOW;
             clearInterval(sendProbe);
             emergentOper("House1");
          };
@@ -181,10 +181,10 @@ db.messages['AliveAnsByH1'].signals['nodeID'].onUpdate(function(){
 
 db.messages['H1StateByFog'].signals['state'].onUpdate(function(s){
    commState.H1Fog = s;
-   if(commState.H1Fog == 0){
+   if(commState.H1Fog == HIGH){
       console.log('House1-House2 CAN communication error.');
       clearInterval(sendProbe);
-   }else if(commState.H1Fog == 1){
+   }else if(commState.H1Fog == LOW){
       console.log('House1 is in blackout.');
       clearInterval(sendProbe);
       emergentOper("House1");
@@ -193,10 +193,16 @@ db.messages['H1StateByFog'].signals['state'].onUpdate(function(s){
    }
 });
 
+db.messages['H1AskingByFog'].signals['nodeID'].onUpdate(function(){
+   db.messages['H1StateByH2'].signals['state'].update(commState.H1H2);
+   db.send('H1StateByH2');
+});
+
 db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
    console.log('Fog sent aliveCheck. Answer is sent.');
    db.send('AliveAnsToFogByH2');
 });
+
 //ddddddd
 function putSensorData(houseName){
    var houseTemp = houseName + "Temp";
