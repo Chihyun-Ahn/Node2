@@ -41,7 +41,7 @@ var ctrlData = [LOW,LOW,LOW,LOW,LOW,LOW];
 var neighborDeadTimer, sendProbe;
 var commState = {
    H1H2: HIGH, H1Fog: HIGH, H2Fog: HIGH
-};
+}; 
 
 var sensor = {
    sensors: [
@@ -129,12 +129,13 @@ function setNeighborDeadTimer(){
       console.log('!!WARNING!! House1 not responding for 30s.');
       var i=1;
       db.send("AliveCheckByH2");
-      console.log('Probe'+i+' has been sent.');
+      console.log('Probe '+i+' has been sent.');
       sendProbe = setInterval(function(){
          i++;
          if(i<=3){
+            commState.H1H2 = LOW;
             db.send('AliveCheckByH2');
-            console.log('Probe'+i+' has been sent.');
+            console.log('Probe '+i+' has been sent.');
          }else if(i>3 && i<6){
             commState.H1H2 = LOW;
             db.messages['H1StateByH2'].signals['state'].update(commState.H1H2);
@@ -156,6 +157,7 @@ db.messages["House1Temp"].signals["temperature2"].onUpdate(function(s){
       commState.H1H2 = HIGH;
    }
    clearTimeout(neighborDeadTimer);
+   clearInterval(sendProbe);
    console.log('timer cleared.');
    setNeighborDeadTimer();
 });
@@ -180,7 +182,8 @@ db.messages['AliveAnsByH1'].signals['nodeID'].onUpdate(function(){
 });
 
 db.messages['H1StateByFog'].signals['state'].onUpdate(function(s){
-   commState.H1Fog = s;
+   console.log('H1StateByFog: '+s.value);
+   commState.H1Fog = s.value;
    if(commState.H1Fog == HIGH){
       console.log('House1-House2 CAN communication error.');
       clearInterval(sendProbe);
