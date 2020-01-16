@@ -47,42 +47,42 @@ var sensor = {
    sensors: [
       {
          name: "House2Sen1",
-         type: 11,
+         type: 22,
          pin: 2,
          temperature: 0,
          humidity: ""
       },
       {
          name: "House2Sen2",
-         type: 11,
+         type: 22,
          pin: 3,
          temperature: 0,
          humidity: ""
       },
       {
          name: "House2Sen3",
-         type: 11,
+         type: 22,
          pin: 4,
          temperature: 0,
          humidity: ""
       },
       {
          name: "House2Sen4",
-         type: 11,
+         type: 22,
          pin: 17,
          temperature: 0,
          humidity: ""
       },
       {
          name: "House2Sen5",
-         type: 11,
+         type: 22,
          pin: 27,
          temperature: 0,
          humidity: ""
       },
       {
          name: "House2Sen6",
-         type: 11,
+         type: 22,
          pin: 22,
          temperature: 0,
          humidity: ""
@@ -92,8 +92,8 @@ var sensor = {
    read: function(){
       for (var a in  this.sensors){
          var b = sensorLib.read(this.sensors[a].type, this.sensors[a].pin);
-         this.sensors[a].temperature = b.temperature.toFixed(1);
-         this.sensors[a].humidity = b.humidity.toFixed(1);
+         this.sensors[a].temperature = (b.temperature.toFixed(1))*10;
+         this.sensors[a].humidity = (b.humidity.toFixed(1));
       }
    }
 };
@@ -140,7 +140,7 @@ function setNeighborDeadTimer(){
             commState.H1H2 = LOW;
             db.messages['H1StateByH2'].signals['state'].update(commState.H1H2);
             db.send('H1AskingByH2');
-            console.log('Probe'+(i-3)+'has been sent to the Fog.');
+            console.log('Probe '+(i-3)+' has been sent to the Fog.');
          }else if(i>=6){
             commState.H1Fog = LOW;
             clearInterval(sendProbe);
@@ -219,6 +219,7 @@ function putSensorData(houseName){
       var humidNameSpecific = humidNameGeneral + (i+1);
       db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature);
       db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity);
+      console.log(db.messages[houseTemp].signals[tempNameSpecific].value);
    }
    db.messages[houseMsgTime].signals["sigTime"].update(timeGetter.now());
    console.log(houseMsgTime + ":" + db.messages[houseMsgTime].signals["sigTime"].value);
