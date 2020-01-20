@@ -92,8 +92,8 @@ var sensor = {
    read: function(){
       for (var a in  this.sensors){
          var b = sensorLib.read(this.sensors[a].type, this.sensors[a].pin);
-         this.sensors[a].temperature = (b.temperature.toFixed(1))*10;
-         this.sensors[a].humidity = (b.humidity.toFixed(1));
+         this.sensors[a].temperature = b.temperature.toFixed(1);
+         this.sensors[a].humidity = b.humidity.toFixed(1);
       }
    }
 };
@@ -217,9 +217,8 @@ function putSensorData(houseName){
    for(i=0;i<6;i++){
       var tempNameSpecific = tempNameGeneral + (i+1);
       var humidNameSpecific = humidNameGeneral + (i+1);
-      db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature);
-      db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity);
-      console.log(db.messages[houseTemp].signals[tempNameSpecific].value);
+      db.messages[houseTemp].signals[tempNameSpecific].update(sensor.sensors[i].temperature*10);
+      db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity*10);
    }
    db.messages[houseMsgTime].signals["sigTime"].update(timeGetter.now());
    console.log(houseMsgTime + ":" + db.messages[houseMsgTime].signals["sigTime"].value);
