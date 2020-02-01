@@ -1,6 +1,8 @@
 var gpio = require('onoff').Gpio;
 var timeGetter = require('./getTime');
-var timesyncClient = require('timesync');
+
+
+
 
 const IOfan1 = new gpio(16,'out');
 const IOfan2 = new gpio(20,'out');
@@ -122,6 +124,27 @@ setInterval(function(){
    getCtrlData("House2");
 
 }, 10000);
+
+var time1, time2, rtt, oneWayDelay, fogRcvTime;
+setInterval(function(){
+   time1 = timeGetter.nowMilli();
+   db.messages['timeSyncReqH2'].signals['sigTime'].update(time1);
+   console.log(time1);
+   db.send('timeSyncReqH2');
+}, 5000);
+
+db.messages['timeSyncResFog'].signals['sigTime'].onUpdate(function(s){
+   time2 = timeGetter.nowMilli();
+   fogRcvTime = s.value;
+   rtt = time2 - time1;
+   oneWayDelay = Math.round(rtt / 2.0);
+   var estimatedFogTime = time1 + oneWayDelay;
+   var timeDiff = estimatedFogTime - fogRcvTime;
+   console.log('Departure time: '+time1+' Arrival time: '+time2+' oneWayDelay: '+oneWayDelay);
+   console.log('Fog received time: '+fogRcvTime+' Estimated fog rcv time: '+estimatedFogTime);
+   console.log('Time difference: '+timeDiff);
+});
+
 
 setNeighborDeadTimer();
 
