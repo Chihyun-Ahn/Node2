@@ -1,5 +1,7 @@
 var gpio = require('onoff').Gpio;
 var timeGetter = require('./getTime');
+var timesyncClient = require('timesync');
+
 const IOfan1 = new gpio(16,'out');
 const IOfan2 = new gpio(20,'out');
 const IOfan3 = new gpio(5,'out');
