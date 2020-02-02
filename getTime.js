@@ -12,8 +12,8 @@ function now(){
 function nowMilli(){
     var date = new Date();
     var h = date.getHours()*3600000;
-    var m = date.getMinutes*60000;
-    var s = date.getSeconds*1000;
+    var m = date.getMinutes()*60000;
+    var s = date.getSeconds()*1000;
     var mi = date.getMilliseconds();
     result = h+m+s+mi;
     return result;
