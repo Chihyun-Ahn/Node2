@@ -136,7 +136,7 @@ setInterval(function(){
    db.send('timeSyncReqH2');
 }, 4500);
 
-db.messages['timeSyncResFog'].signals['sigTime'].onUpdate(function(s){
+db.messages['timeSyncResFogH2'].signals['sigTime'].onUpdate(function(s){
    time2 = timeGetter.nowMilli();
    fogRcvTime = s.value;
    rtt = time2 - time1;
