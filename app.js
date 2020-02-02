@@ -39,7 +39,9 @@ var commState = {
    H1H2: HIGH, H1Fog: HIGH, H2Fog: HIGH
 }; 
 
-var msgNum=0;
+var msgNum = 0;
+var edgeDepTime = 0;
+var edgeDepTimeCalib = 0;
 
 var sensor = {
    sensors: [
@@ -216,13 +218,29 @@ db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
    db.send('AliveAnsToFogByH2');
 });
 
+db.messages['timeSyncReqToH2'].signals['msgNum'].onUpdate(function(s){
+   var msgNumImsi = s.value;
+   if(msgNum==msgNumImsi){
+      var edgeReturnTime = timeGetter.nowMilli();
+      var rtt = edgeReturnTime - edgeDepTime;
+      var oneWayDelay = Math.round(rtt / 2.0);
+      var estimatedFogArrTime = edgeDepTime+oneWayDelay;
+      var fogArrTime = db.messages['timeSyncReqToH2'].signals['fogTime'].value;
+      var timeDifference = estimatedFogArrTime - fogArrTime;
+      edgeDepTimeCalib = edgeDepTime - timeDifference;
+      db.messages['timeSyncResH2'].signals['edgeDepTimeCalib'].update(edgeDepTimeCalib);
+      db.messages['timeSyncResH2'].signals['msgNum'].update(msgNum);
+      db.send('timeSyncResH2');
+   }
+});
+
 //###########################################################
 //########################Functions to call##################
 
 function putSensorData(houseName){
    var houseTemp = houseName + "Temp";
    var houseHumid = houseName + "Humid";
-   var houseMsgInfo = houseName + "MsgInfo";
+   var houseMsgNum = houseName + "MsgNum";
    var tempNameGeneral = "temperature";
    var humidNameGeneral = "humidity";
    var i;
@@ -233,23 +251,22 @@ function putSensorData(houseName){
       db.messages[houseHumid].signals[humidNameSpecific].update(sensor.sensors[i].humidity*10);
    }
    msgNum = parseInt(Math.random()*1000);
-   db.messages[houseMsgInfo].signals['msgNum'].update(msgNum);
+   db.messages[houseMsgNum].signals['msgNum'].update(msgNum);
    // console.log(houseMsgInfo + ":" + db.messages[houseMsgInfo].signals["msgTime"].value);
 }
 
 function sendSensorData(houseName){
-   var rearNameVector = ["Temp", "Humid", "MsgInfo"];
+   var rearNameVector = ["Temp", "Humid", "MsgNum"];
    var i;
    var msgName;
    for (i=0;i<3;i++){
       msgName = houseName + rearNameVector[i];
       if(i==2){
-         db.messages[msgName].signals["msgTime"].update(timeGetter.nowMilli());
-         console.log(db.messages[msgName].signals["msgTime"].value);
+         edgeDepTime = timeGetter.nowMilli();
+         console.log('edgeDepTime before adjusted: '+edgeDepTime);
       };
       db.send(msgName);
    }
-
 }
 
 function getCtrlData(houseName){
