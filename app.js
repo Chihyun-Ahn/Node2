@@ -123,12 +123,7 @@ setInterval(function(){
    getCtrlData("House2");
 
 }, 10000);
-//###########################################################
-//#########################Time Sync#########################
 
-// db.messages['timeSyncResFogH2'].signals['sigTime'].onUpdate(function(s){
-   
-// });
 
 //###########################################################
 //########################Resilience#########################
@@ -219,6 +214,7 @@ db.messages['AliveCheckH2ByFog'].signals['nodeID'].onUpdate(function(){
 });
 
 db.messages['timeSyncReqToH2'].signals['msgNum'].onUpdate(function(s){
+   console.log('timeSyncReqToH2 received. msgNum: '+s.value);
    var msgNumImsi = s.value;
    if(msgNum==msgNumImsi){
       var edgeReturnTime = timeGetter.nowMilli();
@@ -229,6 +225,8 @@ db.messages['timeSyncReqToH2'].signals['msgNum'].onUpdate(function(s){
       var timeDifference = estimatedFogArrTime - fogArrTime;
       edgeDepTimeCalib = edgeDepTime - timeDifference;
       db.messages['timeSyncResH2'].signals['edgeDepTimeCalib'].update(edgeDepTimeCalib);
+      console.log('edgeDepTime before: '+edgeDepTime+' edgeDepTime after: '+edgeDepTimeCalib);
+      console.log('fogArrTime: '+fogArrTime+' edgeReturnTime: '+edgeReturnTime+' rtt: '+rtt+' OWD: '+oneWayDelay);
       db.messages['timeSyncResH2'].signals['msgNum'].update(msgNum);
       db.send('timeSyncResH2');
    }
